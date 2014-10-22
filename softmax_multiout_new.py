@@ -80,12 +80,10 @@ class Softmax_multidim(Layer):
         e_Z = T.exp(Z - Z.max(axis=0, keepdims=True))
         rval = e_Z /e_Z.sum(axis=0, keepdims=True)
 
-        rval_swaped = rval.dimshuffle(3,1,2,0)
-
-        rval_swaped = rval_swaped.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
-        
-        
-        return rval_swaped
+        #rval_swaped = rval.dimshuffle(3,1,2,0)
+        #rval_swaped = rval_swaped.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
+        #return rval_swaped
+        return rval
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
@@ -121,6 +119,9 @@ class Softmax_multidim(Layer):
         rval = OrderedDict()
 
         if (state_below is not None) or (state is not None):
+
+            state = state.dimshuffle(3,1,2,0)
+            state = state.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
             
             state = state.reshape(shape=(self.mlp.batch_size*
                                    self.input_space.shape[0]*
