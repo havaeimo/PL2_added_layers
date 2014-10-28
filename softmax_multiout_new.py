@@ -263,83 +263,13 @@ class ConvSoftmax(Layer):
         return rval
         
 
-    @wraps(Layer.cost)
-    def cost(self, Y, Y_hat):
-
-        z = Y_hat
-        
-        z = z.reshape(shape=(self.mlp.batch_size*
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1],
-                                   self.input_space.num_channels ),ndim=2)
-        
-        Y = Y.reshape(shape=(self.mlp.batch_size*
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1],
-                                   self.input_space.num_channels ),ndim=2)
-        
-       
-        z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
-        # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob).sum(axis=1)
-        assert log_prob_of.ndim == 1
-        rval = log_prob_of.mean()
-
-        return  - rval
-
 
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                     state=None, targets=None):
 
-        # channels that does not require state information
-        rval = OrderedDict()
-
-        if (state_below is not None) or (state is not None):
-
-            #state = state.dimshuffle(3,1,2,0)
-            #state = state.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
-            
-            state = state.reshape(shape=(self.mlp.batch_size*
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1],
-                                   self.input_space.num_channels ),ndim=2)
-
-            mx = state.max(axis=1)   
-
-            rval.update(OrderedDict([('mean_max_class', mx.mean()),
-                                ('max_max_class', mx.max()),
-                                ('min_max_class', mx.min())]))
-
-            assert  targets is not None
-            targets = targets.reshape(shape=(self.mlp.batch_size*
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1],
-                                   self.input_space.num_channels ),ndim=2)
-
-                          
-            
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(targets, axis=1)
-            
-            #state = printing.Print('state')(state)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
-            
-            state = state.reshape(shape=(self.mlp.batch_size,
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1]*
-                                   self.input_space.num_channels ),ndim=2)
-            targets = targets.reshape(shape=(self.mlp.batch_size,
-                                   self.input_space.shape[0]*
-                                   self.input_space.shape[1]*
-                                   self.input_space.num_channels ),ndim=2)
-
-            rval['nll'] = self.cost(Y_hat=state, Y=targets)
-
-        return rval
+        return []
+    
 
 
     @wraps(Layer.get_weight_decay)
@@ -363,7 +293,7 @@ import theano.printing as printing
 from pylearn2.models.mlp import *
 #import theano 
 
-class Softmax_multidim(Layer):
+class Conv2VectorSpace(Layer):
     """
     .. todo::
 
@@ -391,7 +321,7 @@ class Softmax_multidim(Layer):
                  no_affine=True,
                  max_col_norm=None, init_bias_target_marginals=None):
 
-        super(Softmax_multidim, self).__init__()
+        super(Conv2VectorSpace, self).__init__()
 
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
