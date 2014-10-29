@@ -268,7 +268,47 @@ class ConvSoftmax(Layer):
     def get_layer_monitoring_channels(self, state_below=None,
                                     state=None, targets=None):
 
-        return []
+        rval = OrderedDict()
+
+
+        if (state is not None) or (state_below is not None):
+            if state is None:
+                state = self.fprop(state_below)
+
+            P = state
+
+            vars_and_prefixes = [(P, '')]
+
+            for var, prefix in vars_and_prefixes:
+                assert var.ndim == 4
+                v_max = var.max(axis=(1, 2, 3))
+                v_min = var.min(axis=(1, 2, 3))
+                v_mean = var.mean(axis=(1, 2, 3))
+                v_range = v_max - v_min
+
+                # max_x.mean_u is "the mean over *u*nits of the max over
+                # e*x*amples" The x and u are included in the name because
+                # otherwise its hard to remember which axis is which when
+                # reading the monitor I use inner.outer rather than
+                # outer_of_inner or something like that because I want
+                # mean_x.* to appear next to each other in the
+                # alphabetical list, as these are commonly plotted
+                # together
+                for key, val in [('max_x.max_u', v_max.max()),
+                                 ('max_x.mean_u', v_max.mean()),
+                                 ('max_x.min_u', v_max.min()),
+                                 ('min_x.max_u', v_min.max()),
+                                 ('min_x.mean_u', v_min.mean()),
+                                 ('min_x.min_u', v_min.min()),
+                                 ('range_x.max_u', v_range.max()),
+                                 ('range_x.mean_u', v_range.mean()),
+                                 ('range_x.min_u', v_range.min()),
+                                 ('mean_x.max_u', v_mean.max()),
+                                 ('mean_x.mean_u', v_mean.mean()),
+                                 ('mean_x.min_u', v_mean.min())]:
+                    rval[prefix + key] = val
+
+        return rval
     
 
 
@@ -364,11 +404,11 @@ class Conv2VectorSpace(Layer):
         assert state_below.ndim == 4
         assert self.mlp.batch_size == 128
         
+        Z = state_below
 
-
-        rval_swaped = state_below.dimshuffle(3,1,2,0)
-        rval_swaped = rval_swaped.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
-        return rval_swaped
+        Z_swaped = Z.dimshuffle(3,1,2,0)
+        Z_swaped = Z_swaped.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
+        return Z_swaped
         #return rval
 
     @wraps(Layer.cost)
