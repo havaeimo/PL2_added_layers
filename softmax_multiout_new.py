@@ -364,13 +364,9 @@ class Conv2VectorSpace(Layer):
         assert state_below.ndim == 4
         assert self.mlp.batch_size == 128
         
-        Z = state_below
-        
-        
-        e_Z = T.exp(Z - Z.max(axis=0, keepdims=True))
-        rval = e_Z /e_Z.sum(axis=0, keepdims=True)
 
-        rval_swaped = rval.dimshuffle(3,1,2,0)
+
+        rval_swaped = state_below.dimshuffle(3,1,2,0)
         rval_swaped = rval_swaped.reshape(shape=(self.mlp.batch_size,self.input_space.shape[0]*self.input_space.shape[1]*5),ndim=2)      
         return rval_swaped
         #return rval
