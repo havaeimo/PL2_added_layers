@@ -140,25 +140,25 @@ class ConvmixLayer(Layer):
 
         return self.raw_layer.get_weights()
 
-    @wraps(Layer.dropout_fprop)
-    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
-                      input_include_probs=None, default_input_scale=2.,
-                      input_scales=None, per_example=True, theano_rng=None):
-
-        if theano_rng is None:
-            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
-
-        raw = self.raw_layer.dropout_fprop(
-                      state_below,
-                      default_input_include_prob=default_input_include_prob,
-                      input_include_probs=input_include_probs,
-                      default_input_scale=default_input_scale,
-                      input_scales=input_scales,
-                      per_example=per_example,
-                      theano_rng=theano_rng
-                  )
-
-        return theano.tensor.concatenate(raw, axis=0)
+#    @wraps(Layer.dropout_fprop)
+#    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+#                      input_include_probs=None, default_input_scale=2.,
+#                      input_scales=None, per_example=True, theano_rng=None):
+#
+#        if theano_rng is None:
+#            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+#
+#        raw = self.raw_layer.dropout_fprop(
+#                      state_below,
+#                      default_input_include_prob=default_input_include_prob,
+#                      input_include_probs=input_include_probs,
+#                      default_input_scale=default_input_scale,
+#                      input_scales=input_scales,
+#                      per_example=per_example,
+#                      theano_rng=theano_rng
+#                  )
+#
+#        return theano.tensor.concatenate(raw, axis=0)
 
 
 

@@ -10,7 +10,8 @@ import cPickle
 import theano
 import os
 import os.path
-#import ipdb
+
+import ipdb
 #from scipy.misc import imsave
 
 """
@@ -115,7 +116,6 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
     num_patches_cols = ishape_w // predict_patchsize
     assert ishape_h % predict_patchsize == 0
     assert ishape_w % predict_patchsize == 0
-
     patches_shape = (num_patches_rows, num_patches_cols)
     prediction = np.zeros((5,depth, ishape_h, ishape_w),dtype=np.float32)
     indexx=0
@@ -128,6 +128,7 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
             for c in range(num_patches_cols):
                 index = r*num_patches_cols + c
                 id_batch = results[index,...]
+                ipdb.set_trace()
                 id_batch = id_batch.reshape(predict_patchsize*predict_patchsize,5)
                 id_batch = id_batch.T
                 id_batch = id_batch.reshape(5,predict_patchsize, predict_patchsize)
@@ -150,21 +151,19 @@ if __name__ == "__main__":
                         help='A serialized pylearn2 model.')
     parser.add_argument('brain_set', type=str,
                         help='The serialized BrainSet to read.'),
-    #parser.add_argument('patch_shape', type=int,
-    #                    help='The size of the input patch window.'),
+    parser.add_argument('patch_shape', type=int,
+                        help='The size of the input patch window.'),
     parser.add_argument('label_patch_shape', type=int,
                         help='The size of the predicted patch window.'), 
-    #parser.add_argument('num_channels', type=int,
-    #                    help='Number of channels in the dataset.'),
+    parser.add_argument('num_channels', type=int,
+                        help='Number of channels in the dataset.'),
     args = parser.parse_args()
 
     brain_set = BrainSet.from_path(args.brain_set)
     model = cPickle.load(args.model)
-    patch_shrink_size = model.input_space.shape[0] - model.layers[-1].input_space.shape[0]
-    patch_shape = args.label_patch_shape + patch_shrink_size
-    num_channels = model.input_space.num_channels
-    model.layers[-1].input_space.shape = (args.label_patch_shape, args.label_patch_shape)
-    model.layers[-1].desired_space.shape = (args.label_patch_shape, args.label_patch_shape)
+    #ipdb.set_trace()
+    #model.layers[-1].input_space.shape = (args.label_patch_shape, args.label_patch_shape)
+    #model.layers[-1].desired_space.shape = (args.label_patch_shape, args.label_patch_shape)
     #ipdb.set_trace() 
     X = model.get_input_space().make_theano_batch()
     f = theano.function([X], model.fprop(X))
@@ -172,9 +171,10 @@ if __name__ == "__main__":
     #find a way to get teh shape from the softmax layer for now im dividing by 2 but
     #that needs to be fixed
     fprop_input_shape = model.get_input_space().shape
-    obs_patchsize = patch_shape
+    obs_patchsize = args.patch_shape
     #predict_patch_size = (fprop_input_shape[0]/2,fprop_input_shape[1]/2)
     predict_patch_size = args.label_patch_shape
+    num_channels = args.num_channels
     brains = brain_set.get_brains()
     for name in brains:
         b = brains[name]
