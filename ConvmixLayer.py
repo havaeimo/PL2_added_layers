@@ -87,9 +87,9 @@ class ConvmixLayer(Layer):
     def set_batch_size(self, batch_size):
         self.raw_layer.set_batch_size(batch_size)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
-        self.raw_layer.censor_updates(updates)
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        self.raw_layer._modify_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
