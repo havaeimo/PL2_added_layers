@@ -57,11 +57,32 @@ class ConvmixLayer(Layer):
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
+
+        raw_space = self.raw_layer.get_output_space()
+
+        if isinstance(raw_space, CompositeSpace):
+            # Pick apart the Join that fprop used to make state.
+            assert hasattr(state, 'owner')
+            owner = state.owner
+            assert owner is not None
+            assert str(owner.op) == 'Join'
+            # First input to join op in the axis.
+            raw_state = tuple(owner.inputs[1:])
+            raw_space.validate(raw_state)
+            state = raw_state
+        else:
+            # Format state as layer output space.
+            state = self.get_output_space().format_as(state, raw_space)
+
+        if targets is not None:
+            targets = self.get_target_space().format_as(
+                targets, self.raw_layer.get_target_space())
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
             state=state,
             targets=targets
-            )
+        )
+
 
     @wraps(Layer.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
@@ -87,9 +108,9 @@ class ConvmixLayer(Layer):
     def set_batch_size(self, batch_size):
         self.raw_layer.set_batch_size(batch_size)
 
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-        self.raw_layer._modify_updates(updates)
+    @wraps(Layer.censor_updates)
+    def censor_updates(self, updates):
+        self.raw_layer.censor_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -140,25 +161,25 @@ class ConvmixLayer(Layer):
 
         return self.raw_layer.get_weights()
 
-#    @wraps(Layer.dropout_fprop)
-#    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
-#                      input_include_probs=None, default_input_scale=2.,
-#                      input_scales=None, per_example=True, theano_rng=None):
-#
-#        if theano_rng is None:
-#            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
-#
-#        raw = self.raw_layer.dropout_fprop(
-#                      state_below,
-#                      default_input_include_prob=default_input_include_prob,
-#                      input_include_probs=input_include_probs,
-#                      default_input_scale=default_input_scale,
-#                      input_scales=input_scales,
-#                      per_example=per_example,
-#                      theano_rng=theano_rng
-#                  )
-#
-#        return theano.tensor.concatenate(raw, axis=0)
+    @wraps(Layer.dropout_fprop)
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None, per_example=True, theano_rng=None):
+
+        if theano_rng is None:
+            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+
+        raw = self.raw_layer.dropout_fprop(
+                      state_below,
+                      default_input_include_prob=default_input_include_prob,
+                      input_include_probs=input_include_probs,
+                      default_input_scale=default_input_scale,
+                      input_scales=input_scales,
+                      per_example=per_example,
+                      theano_rng=theano_rng
+                  )
+
+        return theano.tensor.concatenate(raw, axis=0)
 
 
 
@@ -246,9 +267,9 @@ class ConvaddLayer(Layer):
     def set_batch_size(self, batch_size):
         self.raw_layer.set_batch_size(batch_size)
 
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-        self.raw_layer._modify_updates(updates)
+    @wraps(Layer.censor_updates)
+    def censor_updates(self, updates):
+        self.raw_layer.censor_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
