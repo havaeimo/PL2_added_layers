@@ -199,10 +199,12 @@ class ConvaddLayer(Layer):
         sp1 = self.raw_layer.get_output_space().components[0]
         sp2 = self.raw_layer.get_output_space().components[1]
         nb_channels1 = sp1.num_channels
-        np_channels2 = sp2.num_channels
+        nb_channels2 = sp2.num_channels
+        assert sp1.shape == sp2.shape
+        assert nb_channels1 == nb_channels2
 
         self.output_space = Conv2DSpace(shape=sp1.shape,
-                                             num_channels=np_channels2,
+                                             num_channels=nb_channels2,
                                          axes=('c', 0, 1, 'b'))
 
     @wraps(Layer.get_input_space)
@@ -299,3 +301,23 @@ class ConvaddLayer(Layer):
     def get_weights(self):
 
         return self.raw_layer.get_weights()
+    @wraps(Layer.dropout_fprop)
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None, per_example=True, theano_rng=None):
+
+        if theano_rng is None:
+            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+
+        raw = self.raw_layer.dropout_fprop(
+                      state_below,
+                      default_input_include_prob=default_input_include_prob,
+                      input_include_probs=input_include_probs,
+                      default_input_scale=default_input_scale,
+                      input_scales=input_scales,
+                      per_example=per_example,
+                      theano_rng=theano_rng
+                  )
+
+        return raw[0] + raw[1]
+
