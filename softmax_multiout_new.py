@@ -268,7 +268,9 @@ class ConvSoftmax(Layer):
     def get_layer_monitoring_channels(self, state_below=None,
                                     state=None, targets=None):
 
-        return []
+        rval = OrderedDict()
+
+        return rval
     
 
 
