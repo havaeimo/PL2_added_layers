@@ -202,7 +202,9 @@ class ConvaddLayer(Layer):
         sp2 = self.raw_layer.get_output_space().components[1]
         nb_channels1 = sp1.num_channels
         nb_channels2 = sp2.num_channels
-        assert sp1.shape == sp2.shape
+        #assert sp1.shape == sp2.shape
+        assert sp1.shape == (1,1)
+        assert sp2.shape == (1,1)
         assert nb_channels1 == nb_channels2
 
         self.output_space = Conv2DSpace(shape=sp1.shape,
@@ -263,10 +265,10 @@ class ConvaddLayer(Layer):
 
         raw = self.raw_layer.fprop(state_below)
         output = raw[0] + raw[1]
-
+        #output = T.sum(raw[0],raw[1])
         #return self.raw_layer.get_output_space().format_as(raw,
         #                                                   self.output_space)
-        return output
+        return raw[0]
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
@@ -321,5 +323,5 @@ class ConvaddLayer(Layer):
                       theano_rng=theano_rng
                   )
 
-        return raw[0] + raw[1]
-
+        #return raw[0] + raw[1]
+        return raw[0]

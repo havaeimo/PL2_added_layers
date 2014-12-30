@@ -10,7 +10,7 @@ import cPickle
 import theano
 import os
 import os.path
-#import ipdb
+import ipdb
 #from scipy.misc import imsave
 
 """
@@ -22,16 +22,25 @@ def all_patches(padded_brain,i,predict_patchsize,obs_patchsize,num_channels):
     image = padded_brain[i]
     ishape_h , ishape_w = padded_brain.shape[1:3]
     #ipdb.set_trace()
-    extended_image = np.zeros((ishape_h+obs_patchsize-predict_patchsize,ishape_w+obs_patchsize-predict_patchsize,num_channels))
     #ipdb.set_trace()
-    extended_image[obs_patchsize/2 - predict_patchsize/2 : -(obs_patchsize/2 - predict_patchsize/2),obs_patchsize/2 - 
-predict_patchsize/2 : -(obs_patchsize/2 - predict_patchsize/2)]= image
+    if obs_patchsize % 2 != 0:
+       half_obs_patchsize = obs_patchsize/2 +1
+    else : 
+      half_obs_patchsize = obs_patchsize/2
+
+    if predict_patchsize % 2 !=0:
+       half_predict_patchsize = predict_patchsize/2 +1
+    else :
+      half_predict_patchsize = predict_patchsize/2
+    extended_image = np.zeros((ishape_h+2*half_obs_patchsize-2*half_predict_patchsize,ishape_w+2*half_obs_patchsize-2*half_predict_patchsize,num_channels))
+    extended_image[half_obs_patchsize - half_predict_patchsize  : -(half_obs_patchsize - half_predict_patchsize),half_obs_patchsize - 
+half_predict_patchsize  : -(half_obs_patchsize - half_predict_patchsize)]= image
     num_patches_rows = ishape_h // predict_patchsize
     num_patches_cols = ishape_w // predict_patchsize
     
     list_patches = np.zeros((num_patches_cols*num_patches_rows, obs_patchsize, obs_patchsize, num_channels))
     index = 0
-    #ipdb.set_trace()    
+    ipdb.set_trace()    
     h_range = np.arange(obs_patchsize/2,ishape_h+obs_patchsize/2,predict_patchsize)
     #h_range = h_range[:-1]
     v_range = np.arange(obs_patchsize/2,ishape_w+obs_patchsize/2,predict_patchsize)
