@@ -26,7 +26,9 @@ def all_patches(padded_brain,i,predict_patchsize,obs_patchsize,num_channels):
     half_obs_patchsize = obs_patchsize/2
     half_predict_patchsize = predict_patchsize/2
     extended_image = np.zeros((ishape_h+obs_patchsize-predict_patchsize,ishape_w+obs_patchsize-predict_patchsize,num_channels))
-    extended_image[half_obs_patchsize - half_predict_patchsize   : -(half_obs_patchsize - half_predict_patchsize),half_obs_patchsize - half_predict_patchsize  : -(half_obs_patchsize - half_predict_patchsize)]= image
+    extended_image[half_obs_patchsize - half_predict_patchsize-1   : -(half_obs_patchsize - 
+half_predict_patchsize) ,half_obs_patchsize - 
+half_predict_patchsize-1  : -(half_obs_patchsize - half_predict_patchsize)]= image
     num_patches_rows = ishape_h // predict_patchsize
     num_patches_cols = ishape_w // predict_patchsize
     
@@ -71,10 +73,8 @@ def generate_prediction_for_data(data, fprop, batch_size = 128):
             buffer_batch = np.zeros((batch.shape[0],batch.shape[1],batch.shape[2],batch_size),dtype=np.float32)
             buffer_batch[:,:,:,0:num_samples] = batch
             batch = buffer_batch
-        
-        #ipdb.set_trace()
+
         results_batch = fprop(batch)
-        print "damn"
         #ipdb.set_trace()
         if num_samples < batch_size:
             results_batch = results_batch[0:num_samples,...]
@@ -101,9 +101,9 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
     #slices = standardize_nonzeros(slices, axis=3) BESURE TO UNCOMMENT THIS----IMP*****
     num_levels = len(slices)
     depth, height , width = slices.shape[0:3]
-
-    ishape_h = height + predict_patchsize - height % predict_patchsize
-    ishape_w = width + predict_patchsize - width % predict_patchsize
+    #ipdb.set_trace()
+    ishape_h = height #+ predict_patchsize - height % predict_patchsize
+    ishape_w = width #+ predict_patchsize - width % predict_patchsize
     #if ishape_h % 2 != 0 or ishape_w %2 != 0 :
     #     ipdb.set_trace()
        
@@ -112,23 +112,20 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
    
     padding = (predict_patchsize - height % predict_patchsize ,predict_patchsize - width % predict_patchsize) 
     padded_brain = np.zeros((depth, ishape_h, ishape_w,num_channels))
-    padded_brain[:,padding[0]/2:-padding[0]/2,padding[1]/2:-padding[1]/2,0:num_channels] = slices
+    #padded_brain[:,padding[0]/2:-padding[0]/2,padding[1]/2:-padding[1]/2,0:num_channels] = slices
+    padded_brain = slices
     num_patches_rows = ishape_h // predict_patchsize
     num_patches_cols = ishape_w // predict_patchsize
     assert ishape_h % predict_patchsize == 0
     assert ishape_w % predict_patchsize == 0
-
+    #ipdb.set_trace()
     patches_shape = (num_patches_rows, num_patches_cols)
     prediction = np.zeros((5,depth, ishape_h, ishape_w),dtype=np.float32)
     indexx=0
     for z in range(num_levels):
         patches = all_patches(padded_brain, z, predict_patchsize, obs_patchsize, num_channels)
-        #if patches.shape != (546, 60, 60, 4):
-         #  ipdb.set_trace()
-        print patches.shape
         results = generate_prediction_for_data(numpy.asarray(patches,dtype=np.float32), fprop)
         results = np.asarray(results, dtype=numpy.float32)
-        print "OK"
         #results = results.T
         for r in range(num_patches_rows):
             for c in range(num_patches_cols):
@@ -166,7 +163,6 @@ if __name__ == "__main__":
 
     brain_set = BrainSet.from_path(args.brain_set)
     model = cPickle.load(args.model)
-    #ipdb.set_trace()
     patch_shrink_size = model.input_space.shape[0] - model.layers[-1].input_space.shape[0]
     patch_shape = args.label_patch_shape + patch_shrink_size
     num_channels = model.input_space.num_channels
