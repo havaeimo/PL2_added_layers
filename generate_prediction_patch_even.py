@@ -10,7 +10,7 @@ import cPickle
 import theano
 import os
 import os.path
-import ipdb
+#import ipdb
 #from scipy.misc import imsave
 
 """
@@ -25,10 +25,13 @@ def all_patches(padded_brain,i,predict_patchsize,obs_patchsize,num_channels):
     #ipdb.set_trace()
     half_obs_patchsize = obs_patchsize/2
     half_predict_patchsize = predict_patchsize/2
+    
+    secondhalf_obs_patchsize = obs_patchsize - obs_patchsize/2
+    secondhalf_predict_patchsize = predict_patchsize -  predict_patchsize/2
+
     extended_image = np.zeros((ishape_h+obs_patchsize-predict_patchsize,ishape_w+obs_patchsize-predict_patchsize,num_channels))
-    extended_image[half_obs_patchsize - half_predict_patchsize   : -(half_obs_patchsize - 
-half_predict_patchsize) ,half_obs_patchsize - 
-half_predict_patchsize  : -(half_obs_patchsize - half_predict_patchsize)]= image
+
+    extended_image[half_obs_patchsize - half_predict_patchsize   : -(secondhalf_obs_patchsize - secondhalf_predict_patchsize) ,half_obs_patchsize - half_predict_patchsize  : -(secondhalf_obs_patchsize - secondhalf_predict_patchsize)]= image
     num_patches_rows = ishape_h // predict_patchsize
     num_patches_cols = ishape_w // predict_patchsize
     
@@ -38,12 +41,13 @@ half_predict_patchsize  : -(half_obs_patchsize - half_predict_patchsize)]= image
     #h_range = h_range[:-1]
     v_range = np.arange(obs_patchsize/2,ishape_w+obs_patchsize/2,predict_patchsize)
     #v_range = v_range[:-1]
-    ipdb.set_trace()
+    #ipdb.set_trace()
     for index_h in h_range:
         for index_w in v_range:
-            patch_brian = extended_image[index_h-obs_patchsize/2: index_h+obs_patchsize/2+1 ,index_w-obs_patchsize/2: index_w+obs_patchsize/2+1,:]
+            patch_brian = extended_image[index_h-half_obs_patchsize : index_h+secondhalf_obs_patchsize 
+,index_w-half_obs_patchsize  : index_w+secondhalf_obs_patchsize,:]
             #if patch_brian.shape == (38,29,4):
-            #   ipdb.set_trace()
+            #ipdb.set_trace()
              
             list_patches[index,:,:,:] = patch_brian
             index += 1
@@ -102,18 +106,28 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
     num_levels = len(slices)
     depth, height , width = slices.shape[0:3]
     #ipdb.set_trace()
-    ishape_h = height #+ predict_patchsize - height % predict_patchsize
-    ishape_w = width #+ predict_patchsize - width % predict_patchsize
+    if height % predict_patchsize != 0 :
+       ishape_h = height + predict_patchsize - height % predict_patchsize
+    else :
+       ishape_h = height
+
+    if width % predict_patchsize != 0 :
+       ishape_w = width + predict_patchsize - width % predict_patchsize
+    else :
+       ishape_w = width
     #if ishape_h % 2 != 0 or ishape_w %2 != 0 :
-    #     ipdb.set_trace()
+    #ipdb.set_trace()
        
    
     #assert ishape_h % 2 == 0 and ishape_w %2 == 0
-   
-    padding = (predict_patchsize - height % predict_patchsize ,predict_patchsize - width % predict_patchsize) 
+    padding = (ishape_h - height, ishape_w - width)
+    #padding = (predict_patchsize - height % predict_patchsize ,predict_patchsize - width % predict_patchsize) 
     padded_brain = np.zeros((depth, ishape_h, ishape_w,num_channels))
-    #padded_brain[:,padding[0]/2:-padding[0]/2,padding[1]/2:-padding[1]/2,0:num_channels] = slices
-    padded_brain = slices
+    #ipdb.set_trace()
+    padded_height = padded_brain.shape[1]
+    padded_width = padded_brain.shape[2]
+    padded_brain[:,0+padding[0]/2:padded_height-(padding[0]-padding[0]/2),0+padding[1]/2:padded_width-(padding[1]-padding[1]/2),0:num_channels] = slices
+    #padded_brain = slices
     num_patches_rows = ishape_h // predict_patchsize
     num_patches_cols = ishape_w // predict_patchsize
     assert ishape_h % predict_patchsize == 0
@@ -142,7 +156,7 @@ def generate_prediction_for_brain(brain,predict_patchsize, fprop,obs_patchsize,n
         #print 'slice_%s.png'%str(indexx)
         #indexx+=1
     #prediction = prediction.swapaxes(0,3)
-    adjusted_prediction = prediction[:,:,padding[0]/2:-padding[0]/2,padding[1]/2:-padding[1]/2]
+    adjusted_prediction = prediction[:,:,0+padding[0]/2:padded_height-(padding[0]-padding[0]/2),0+padding[1]/2:padded_width-(padding[1]-padding[1]/2)]
     return adjusted_prediction
 
     
@@ -162,9 +176,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     brain_set = BrainSet.from_path(args.brain_set)
+    #import ipdb
+    #ipdb.set_trace()
     model = cPickle.load(args.model)
     patch_shrink_size = model.input_space.shape[0] - model.layers[-1].input_space.shape[0]
     patch_shape = args.label_patch_shape + patch_shrink_size
+
+    if (patch_shape % 2) != 0:     
+        raise Exception('Oops!  Choose a size for the  predicted patch so that the input patch size to the model would be even')
+
+
     num_channels = model.input_space.num_channels
     model.layers[-1].input_space.shape = (args.label_patch_shape, args.label_patch_shape)
     model.layers[-1].desired_space.shape = (args.label_patch_shape, args.label_patch_shape)
