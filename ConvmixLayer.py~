@@ -37,11 +37,11 @@ class ConvmixLayer(Layer):
 
         self.raw_layer.set_input_space(space)
         nb_st = len(self.raw_layer.get_output_space().components)
-        sp1 = self.raw_layer.get_output_space().components[0]
+        #sp1 = self.raw_layer.get_output_space().components[0]
         #sp2 = self.raw_layer.get_output_space().components[1]
         nb_channels = 0
         for st in range(nb_st):
-            nb_channels += self.raw_layer.get_output_space().components[st].num_channels
+            nb_channels = nb_channels + self.raw_layer.get_output_space().components[st]
         #nb_channels = theano.sum(self.raw_layer.get_output_space().components)
         #nb_channels1 = sp1.num_channels
         #nb_channels2 = sp2.num_channels
